@@ -1,124 +1,111 @@
-# LSTM-TrajGAN
+# LSTM-MC: CUDA-Accelerated LSTM Trajectory GAN
 
-LSTM-TrajGAN: A Deep Learning Approach to Trajectory Generation and Privacy Protection
+A high-performance, CUDA-enabled implementation of LSTM-based Trajectory GAN for neutron trajectory generation, optimized for GPU clusters.
 
-## Abstract
-The prevalence of location-based services contributes to the explosive growth of individual-level location trajectory data and raises public concerns about privacy issues. In this research, we propose a novel LSTM-TrajGAN approach, which is an end-to-end deep learning model to generate privacy-preserving synthetic trajectory data for data sharing and publication. We design a loss metric function TrajLoss to measure the trajectory similarity losses for model training and optimization. The model is evaluated on the trajectory-user-linking task on a real-world semantic trajectory dataset. Compared with other common geomasking methods, our model can better prevent users from being re-identified, and it also preserves essential spatial, temporal, and thematic characteristics of the real trajectory data. The model better balances the effectiveness of trajectory privacy protection and the utility for spatial and temporal analyses, which offers new insights into the GeoAI-powered privacy protection for human mobility studies.
+## Features
 
-<p align="center">
-    <img src="results/workflow.png" alt="workflow" >
-</p>
-<p align="center">
-    <img src="results/trajectory_example.png" alt="trajectory_example" >
-</p>
-
-## Reference
-If you find our code or ideas useful for your research, please cite our paper:
-
-*Rao, J., Gao, S.\*, Kang, Y. and Huang, Q. (2020). [LSTM-TrajGAN: A Deep Learning Approach to Trajectory Privacy Protection](https://drops.dagstuhl.de/opus/volltexte/2020/13047/). In the Proceedings of the 11th International Conference on Geographic Information Science (GIScience 2021), 12:1--12:17.*
-
-```
-@InProceedings{rao_et_al:LIPIcs:2020:13047,
-  author =	{Jinmeng Rao and Song Gao and Yuhao Kang and Qunying Huang},
-  title =	{{LSTM-TrajGAN: A Deep Learning Approach to Trajectory Privacy Protection}},
-  booktitle =	{11th International Conference on Geographic Information Science (GIScience 2021) - Part I},
-  pages =	{12:1--12:17},
-  series =	{Leibniz International Proceedings in Informatics (LIPIcs)},
-  ISBN =	{978-3-95977-166-5},
-  ISSN =	{1868-8969},
-  year =	{2020},
-  volume =	{177},
-  editor =	{Krzysztof Janowicz and Judith A. Verstegen},
-  publisher =	{Schloss Dagstuhl--Leibniz-Zentrum f{\"u}r Informatik},
-  address =	{Dagstuhl, Germany},
-  URL =		{https://drops.dagstuhl.de/opus/volltexte/2020/13047},
-  URN =		{urn:nbn:de:0030-drops-130471},
-  doi =		{10.4230/LIPIcs.GIScience.2021.I.12},
-  annote =	{Keywords: GeoAI, Deep Learning, Trajectory Privacy, Generative Adversarial Networks}
-}
-```
-
-## Related work
-*Rao, J., Gao, S.\*, and Zhu, S. (2023). [CATS: Conditional Adversarial Trajectory Synthesis for privacy-preserving trajectory data publication using deep learning approaches](https://www.tandfonline.com/doi/abs/10.1080/13658816.2023.2262550). In International Journal of Geographical Information Science, 37:12,2538--2574.
-
-```
-@article{rao2023cats,
-  title={CATS: Conditional Adversarial Trajectory Synthesis for privacy-preserving trajectory data publication using deep learning approaches},
-  author={Rao, Jinmeng and Gao, Song and Zhu, Sijia},
-  journal={International Journal of Geographical Information Science},
-  volume={37},
-  number={12},
-  pages={2538--2574},
-  year={2023},
-  publisher={Taylor \& Francis}
-}
-```
-
+- **CUDA Acceleration**: Full GPU support with mixed precision training
+- **LSTM Architecture**: Advanced recurrent neural networks for trajectory modeling
+- **GAN Training**: Generative Adversarial Network for synthetic trajectory generation
+- **Multi-GPU Support**: Distributed training across multiple GPUs
+- **Automatic Checkpointing**: Regular model saves during training
 
 ## Requirements
 
-LSTM-TrajGAN uses the following packages with Python 3.6.3
+- NVIDIA GPU with CUDA support
+- Python 3.8+
+- TensorFlow 2.x with CUDA support
+- CUDA Toolkit 11.0+
 
-- numpy==1.18.4
-- pandas==1.1.5
-- tensorflow-gpu==1.13.1
-- Keras==2.2.4
-- geohash2==1.1
-- scikit-learn==0.23.2
+## Installation
 
-## Usage
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/LSTM-MC.git
+cd LSTM-MC
 
-### Data Encoding
-<p align="center">
-    <img src="results/Trajectory_Point_Encoding.png" alt="Trajectory_Point_Encoding" >
-</p>
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-Convert csv files to one-hot-encoded npy files.
-
-```
-python data/csv2npy.py --load_path dev_train_encoded_final.csv --save_path train_encoded.npy --tid_col tid
+# Install dependencies
+pip install "tensorflow[and-cuda]" numpy pandas scikit-learn scipy matplotlib seaborn
 ```
 
-Where `load_path` is the path to csv file, `save_path` is the path to save npy file, `tid_col` is the column name of trajectory id.
+## Quick Start
 
-### Training
-
-Train the LSTM-TrajGAN model using the preprocessed data.
-
-```
-python train.py 2000 256 100
+### 1. Data Preparation
+```bash
+# Preprocess your neutron trajectory data
+python neutron_data_preprocessor.py --input_csv data/Sheet.csv --max_length 200
 ```
 
-Where `2000` is the total training epochs, `256` is the batch size, `100` is the parameter saving interval (i.e., save params every 100 epochs).
+### 2. Training
+```bash
+# Train with CUDA acceleration
+python cuda_neutron_train.py <epochs> <batch_size> <save_interval> [mixed_precision]
 
-### Prediction
-
-Generate synthetic trajectory data based on the real test trajectory data and save them to `results/syn_traj_test.csv`.
-
-```
-python predict.py 1900
-```
-
-Where `1900` means we load the params file saved at the 1900th epoch to generate synthetic trajectory data.
-
-### Test
-
-Evaluate the synthetic trajectory data on the Trajectory-User Linking task using MARC.
-
-```
-python TUL_test.py data/train_latlon.csv results/syn_traj_test.csv 100
+# Example: 1000 epochs, batch size 32, save every 50 epochs, with mixed precision
+python cuda_neutron_train.py 1000 32 50 True
 ```
 
-Where `data/train_latlon.csv` is the training data, `results/syn_traj_test.csv` is the synthetic test data, `100` is the embedder size.
+### 3. Checkpoints
+Training automatically saves checkpoints to `training_params/`:
+- `cuda_neutron_C_model_{epoch}.h5` - Combined model
+- `cuda_neutron_G_model_{epoch}.h5` - Generator
+- `cuda_neutron_D_model_{epoch}.h5` - Discriminator
 
-### Dataset
+## Architecture
 
-The data we used in our paper originally come from [the Foursquare NYC check-in dataset](https://sites.google.com/site/yangdingqi/home/foursquare-dataset).
+- **Generator**: LSTM-based trajectory generator with noise injection
+- **Discriminator**: LSTM-based discriminator for trajectory authenticity
+- **Training**: Adversarial training with gradient scaling and mixed precision
 
-### References
+## Data Format
 
-We mainly referred to these two works:
+Input: CSV with columns `x`, `y`, `z`, `arc_length`
+Output: Normalized trajectory segments in NPZ format
 
-*May Petry, L., Leite Da Silva, C., Esuli, A., Renso, C., and Bogorny, V. (2020). MARC: a robust method for multiple-aspect trajectory classification via space, time, and semantic embeddings. International Journal of Geographical Information Science, 34(7), 1428-1450.* [Github](https://github.com/bigdata-ufsc/petry-2020-marc)
+## Performance
 
-*Keras-GAN: Collection of Keras implementations of Generative Adversarial Networks (GANs).* [Github](https://github.com/eriklindernoren/Keras-GAN)
+- **GPU Memory**: Optimized with memory growth and mixed precision
+- **Multi-GPU**: Automatic distribution strategy detection
+- **Checkpointing**: Regular saves prevent training loss
+
+## Cluster Usage
+
+### SLURM Example
+```bash
+#!/bin/bash
+#SBATCH -J lstm-mc
+#SBATCH -p gpu
+#SBATCH --gres=gpu:1
+#SBATCH -c 8
+#SBATCH --mem=32G
+#SBATCH -t 24:00:00
+
+module load cuda/12.2
+python -m venv venv
+source venv/bin/activate
+pip install "tensorflow[and-cuda]" numpy pandas scikit-learn scipy
+
+python neutron_data_preprocessor.py --input_csv data/Sheet.csv --max_length 200
+python cuda_neutron_train.py 1000 32 50 True
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@software{lstm_mc,
+  title={LSTM-MC: CUDA-Accelerated LSTM Trajectory GAN},
+  author={Your Name},
+  year={2024},
+  url={https://github.com/yourusername/LSTM-MC}
+}
+```
