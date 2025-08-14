@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Outputs and artifacts
+neutron_vae/output/
+*.pt
+*.pth
+samples.npy
+generated_track.csv
+feature_histograms.png
+
+# IDE
+.idea/
+.vscode/
+
+
