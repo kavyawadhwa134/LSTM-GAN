@@ -2,9 +2,16 @@
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
-from config import SEQ_LEN, BOUNDS, N_TRACKS
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def load_and_split_tracks(csv_file='Sheet.csv'):
+from neutron_vae.config import SEQ_LEN, BOUNDS, N_TRACKS
+
+def load_and_split_tracks(csv_file=None):
+    if csv_file is None:
+        import os
+        csv_file = os.path.join(os.path.dirname(__file__), 'Sheet.csv')
     """
     Load CSV and split into N_TRACKS using large spatial jumps.
     """
@@ -34,9 +41,19 @@ def preprocess_tracks(tracks, seq_len=SEQ_LEN):
     Resample to fixed length, normalize, extract condition.
     """
     def resample(track, n=seq_len):
-        t = np.linspace(0, 1, len(track))
-        f = interp1d(t, track, axis=0, kind='linear')
-        return f(np.linspace(0, 1, n))
+        if len(track) == 1:
+            # If track has only one point, repeat it
+            return np.tile(track, (n, 1))
+        elif len(track) == 2:
+            # If track has only two points, use linear interpolation
+            t = np.linspace(0, 1, len(track))
+            f = interp1d(t, track, axis=0, kind='linear')
+            return f(np.linspace(0, 1, n))
+        else:
+            # For tracks with more than 2 points, use cubic interpolation
+            t = np.linspace(0, 1, len(track))
+            f = interp1d(t, track, axis=0, kind='cubic', bounds_error=False, fill_value='extrapolate')
+            return f(np.linspace(0, 1, n))
 
     tracks_fixed = np.array([resample(track) for track in tracks])
     xyz_min = np.array(BOUNDS['min'])

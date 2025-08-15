@@ -1,8 +1,12 @@
 # generate.py
 import torch
 import numpy as np
-from model import VAE
-from config import *
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from neutron_vae.model import VAE
+from neutron_vae.config import *
 
 def generate_track(model, condition, xyz_min, xyz_max):
     model.eval()
@@ -18,8 +22,14 @@ def generate_track(model, condition, xyz_min, xyz_max):
 
 # Example
 if __name__ == "__main__":
+    from neutron_vae.load_data import load_and_split_tracks, preprocess_tracks
+    
     model = VAE().to(DEVICE)
     model.load_state_dict(torch.load('neutron_vae.pth'))
+
+    # Load normalization parameters
+    raw_tracks = load_and_split_tracks()
+    _, _, xyz_min, xyz_max = preprocess_tracks(raw_tracks)
 
     condition = np.array([0.0, 0.0, 0.0, 0.0, 0.0, -0.5])  # start at origin, go down-z
     new_track = generate_track(model, condition, xyz_min, xyz_max)

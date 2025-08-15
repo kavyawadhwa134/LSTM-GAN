@@ -1,6 +1,7 @@
-from .config import Config, DEFAULT_CONFIG
-from .model import MLPVAE
+from .config import *
+from .model import VAE, vae_loss
+from .load_data import load_and_split_tracks, preprocess_tracks
 
-__all__ = ["Config", "DEFAULT_CONFIG", "MLPVAE"]
+__all__ = ["VAE", "vae_loss", "load_and_split_tracks", "preprocess_tracks"]
 
 
