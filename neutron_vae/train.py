@@ -26,6 +26,39 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2000, T_mult=2, eta_min=LR/1000
 )
 
+# Checkpoint loading functionality
+def load_checkpoint(checkpoint_path):
+    """Load checkpoint and continue training from where it left off"""
+    if os.path.exists(checkpoint_path):
+        print(f"🔄 Loading checkpoint from {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location=DEVICE)
+        
+        # Load model state
+        model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # Load optimizer state
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        
+        # Load scheduler state if available
+        if 'scheduler_state_dict' in checkpoint:
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        
+        # Get starting epoch and best loss
+        start_epoch = checkpoint.get('epoch', 0)
+        best_loss = checkpoint.get('loss', float('inf'))
+        
+        print(f"✅ Checkpoint loaded successfully!")
+        print(f"   Starting from epoch: {start_epoch}")
+        print(f"   Best loss so far: {best_loss:.6f}")
+        
+        return start_epoch, best_loss
+    else:
+        print(f"📝 No checkpoint found at {checkpoint_path}, starting fresh training")
+        return 0, float('inf')
+
+# Load checkpoint if available
+start_epoch, best_loss = load_checkpoint('neutron_vae_checkpoint.pth')
+
 # Beta scheduling for KL divergence
 def get_beta(epoch):
     if epoch < WARMUP_EPOCHS:
@@ -41,11 +74,10 @@ print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
 print(f"Training for {N_EPOCHS} epochs with {BATCH_SIZE} batch size")
 print(f"Learning rate: {LR}, Beta: {BETA}, Alpha: {ALPHA}")
 
-best_loss = float('inf')
 loss_history = []
 beta_history = []
 
-for epoch in range(N_EPOCHS):
+for epoch in range(start_epoch, N_EPOCHS):
     model.train()
     optimizer.zero_grad()
 
@@ -80,6 +112,23 @@ for epoch in range(N_EPOCHS):
               f"β: {current_beta:.4f}, "
               f"LR: {lr:.6f})")
     
+    # Save checkpoint every 1000 epochs
+    if epoch % 1000 == 0 and epoch > 0:
+        torch.save({
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'epoch': epoch,
+            'loss': loss_components['total'],
+            'best_loss': best_loss,
+            'config': {
+                'latent_dim': LATENT_DIM,
+                'hidden_size': HIDDEN_SIZE,
+                'num_layers': NUM_LAYERS
+            }
+        }, 'neutron_vae_checkpoint.pth')
+        print(f"💾 Checkpoint saved at epoch {epoch}")
+    
     # Save best model
     if loss_components['total'] < best_loss:
         best_loss = loss_components['total']
@@ -112,7 +161,7 @@ print(f"✅ Training complete!")
 print(f"Best loss: {best_loss:.6f}")
 print(f"Final loss: {loss_history[-1]:.6f}")
 print(f"Final beta: {beta_history[-1]:.6f}")
-print("Models saved: neutron_vae.pth (final), neutron_vae_best.pth (best)")
+print("Models saved: neutron_vae.pth (final), neutron_vae_best.pth (best), neutron_vae_checkpoint.pth (checkpoint)")
 
 # Plot training progress
 try:

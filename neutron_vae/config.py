@@ -13,25 +13,25 @@ BOUNDS = {
     'max': [0.63, 0.63, 21.468]
 }
 
-# Model - Ultra High Fidelity
+# Model - Match the trained model
 INPUT_DIM = 3
 COND_DIM = 6  # [x0, y0, z0, vx, vy, vz]
-LATENT_DIM = 64  # Increased for better representation
-HIDDEN_SIZE = 256  # Much larger for ultra-high fidelity
-NUM_LAYERS = 4  # Deeper network
+LATENT_DIM = 64  # Match trained model
+HIDDEN_SIZE = 256  # Match trained model
+NUM_LAYERS = 4  # Match trained model
 
-# Training - Ultra High Fidelity
-BATCH_SIZE = 10  # Increased batch size
-N_EPOCHS = 15000  # More training epochs
-LR = 1e-4  # Lower learning rate for ultra-stability
-BETA = 0.001  # Very low KL weight to focus on reconstruction
-ALPHA = 0.01  # Lower Smooth L1 weight
+# Training - Match the trained model
+BATCH_SIZE = 10
+N_EPOCHS = 15000
+LR = 1e-4
+BETA = 0.001
+ALPHA = 0.01
 
 # Advanced training settings
-WARMUP_EPOCHS = 2000  # Longer warmup period
-BETA_SCHEDULE = True  # Dynamic KL weight scheduling
-GRADIENT_CLIP = 0.1  # Very tight gradient clipping
-WEIGHT_DECAY = 1e-5  # Lower weight decay
+WARMUP_EPOCHS = 2000
+BETA_SCHEDULE = True
+GRADIENT_CLIP = 0.1
+WEIGHT_DECAY = 1e-5
 
 # Device
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
