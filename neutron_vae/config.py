@@ -30,7 +30,7 @@ HIDDEN_SIZE = 256  # Match trained model
 NUM_LAYERS = 4  # Match trained model
 
 # Training - Optimized for GPU with maximum memory usage
-BATCH_SIZE = 64 if torch.cuda.is_available() else 10  # Maximum batch size for GPU
+BATCH_SIZE = 8192 if torch.cuda.is_available() else 10  # Optimal batch size for A10 GPU
 N_EPOCHS = 15000
 LR = 1e-4
 BETA = 0.001
