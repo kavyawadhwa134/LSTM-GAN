@@ -19,8 +19,8 @@ from neutron_vae.load_data import load_and_split_tracks, preprocess_tracks
 from neutron_vae.config import *
 
 def setup_gpu():
-    """Setup GPU optimization and check availability"""
-    print("🔧 GPU SETUP")
+    """Setup GPU optimization and check availability with maximum memory usage"""
+    print("🔧 GPU SETUP WITH MAXIMUM MEMORY")
     print("=" * 50)
     
     # Check CUDA availability
@@ -32,21 +32,40 @@ def setup_gpu():
         # Get GPU info
         device = torch.device("cuda")
         gpu_name = torch.cuda.get_device_name(0)
-        gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        total_memory = torch.cuda.get_device_properties(0).total_memory
+        gpu_memory_gb = total_memory / 1024**3
         
         print(f"🚀 GPU Available: {gpu_name}")
-        print(f"   Memory: {gpu_memory:.2f} GB")
+        print(f"   Total Memory: {gpu_memory_gb:.2f} GB")
         print(f"   CUDA Version: {torch.version.cuda}")
         
-        # Test GPU memory
+        # Set maximum memory fraction (95% of available memory)
+        max_memory_fraction = 0.95
+        torch.cuda.set_per_process_memory_fraction(max_memory_fraction)
+        print(f"   Memory fraction set to: {max_memory_fraction*100:.0f}%")
+        
+        # Clear any existing allocations
+        torch.cuda.empty_cache()
+        import gc
+        gc.collect()
+        
+        # Test GPU memory with maximum allocation
         try:
-            test_tensor = torch.randn(1000, 200, 3).to(device)
-            print(f"   Test tensor created successfully")
-            print(f"   Memory allocated: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+            # Test with larger tensor to verify maximum memory
+            test_size = int(total_memory * 0.8 / 4)  # Use 80% of total memory
+            test_tensor = torch.randn(test_size, device=device)
+            allocated_mb = torch.cuda.memory_allocated() / 1024**2
+            reserved_mb = torch.cuda.memory_reserved() / 1024**2
+            print(f"   ✅ Memory test successful")
+            print(f"   Allocated: {allocated_mb:.1f} MB")
+            print(f"   Reserved: {reserved_mb:.1f} MB")
             del test_tensor
             torch.cuda.empty_cache()
         except Exception as e:
             print(f"   ⚠️ GPU memory test failed: {e}")
+            # Reduce memory fraction
+            torch.cuda.set_per_process_memory_fraction(0.8)
+            print(f"   🔄 Reduced memory fraction to 80%")
         
         return device, True
     else:
@@ -54,18 +73,24 @@ def setup_gpu():
         return torch.device("cpu"), False
 
 def optimize_batch_size(device, tracks_norm, conditions):
-    """Find optimal batch size for GPU memory"""
-    print("\n🔍 OPTIMIZING BATCH SIZE")
+    """Find optimal batch size for GPU memory with maximum utilization"""
+    print("\n🔍 OPTIMIZING BATCH SIZE FOR MAXIMUM MEMORY")
     print("=" * 50)
     
     if device.type == "cuda":
-        # Test different batch sizes
-        batch_sizes = [16, 32, 64, 128]
-        optimal_batch_size = 16  # Default
+        # Test increasingly larger batch sizes for maximum memory usage
+        batch_sizes = [32, 64, 128, 256, 512, 1024]
+        optimal_batch_size = 32  # Default
+        max_memory_used = 0
         
         for batch_size in batch_sizes:
             try:
                 print(f"Testing batch size: {batch_size}")
+                
+                # Clear memory before test
+                torch.cuda.empty_cache()
+                import gc
+                gc.collect()
                 
                 # Create test batch
                 idx = torch.randperm(len(tracks_norm))[:batch_size]
@@ -82,22 +107,32 @@ def optimize_batch_size(device, tracks_norm, conditions):
                 # Backward pass
                 loss.backward()
                 
-                print(f"   ✅ Success - Memory: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+                # Check memory usage
+                memory_used = torch.cuda.memory_allocated() / 1024**2
+                memory_reserved = torch.cuda.memory_reserved() / 1024**2
+                total_memory = torch.cuda.get_device_properties(0).total_memory / 1024**2
+                utilization = memory_used / total_memory * 100
+                
+                print(f"   ✅ Success - Allocated: {memory_used:.1f} MB, Reserved: {memory_reserved:.1f} MB ({utilization:.1f}%)")
                 optimal_batch_size = batch_size
+                max_memory_used = memory_used
                 
                 # Clean up
                 del model, x_batch, c_batch, recon, mu, logvar, loss
                 torch.cuda.empty_cache()
+                gc.collect()
                 
             except RuntimeError as e:
                 if "out of memory" in str(e):
-                    print(f"   ❌ Out of memory")
+                    print(f"   ❌ Out of memory at batch size {batch_size}")
                     break
                 else:
                     print(f"   ❌ Error: {e}")
                     break
         
-        print(f"🎯 Optimal batch size: {optimal_batch_size}")
+        print(f"🎯 Maximum batch size: {optimal_batch_size}")
+        print(f"📊 Peak memory usage: {max_memory_used:.1f} MB")
+        
         return optimal_batch_size
     else:
         print("Using default batch size for CPU")

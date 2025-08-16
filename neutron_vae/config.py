@@ -20,12 +20,16 @@ LATENT_DIM = 64  # Match trained model
 HIDDEN_SIZE = 256  # Match trained model
 NUM_LAYERS = 4  # Match trained model
 
-# Training - Optimized for GPU
-BATCH_SIZE = 32 if torch.cuda.is_available() else 10  # Larger batch size for GPU
+# Training - Optimized for GPU with maximum memory usage
+BATCH_SIZE = 64 if torch.cuda.is_available() else 10  # Maximum batch size for GPU
 N_EPOCHS = 15000
 LR = 1e-4
 BETA = 0.001
 ALPHA = 0.01
+
+# GPU Memory Optimization
+MAX_GPU_MEMORY_FRACTION = 0.95  # Use 95% of available GPU memory
+GRADIENT_ACCUMULATION_STEPS = 1  # Increase for larger effective batch sizes
 
 # Advanced training settings
 WARMUP_EPOCHS = 2000

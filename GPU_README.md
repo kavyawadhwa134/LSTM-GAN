@@ -50,6 +50,7 @@ if torch.cuda.is_available():
 - Real-time GPU memory monitoring
 - Automatic checkpoint saving
 - Performance metrics tracking
+- **Maximum memory utilization (95% of GPU memory)**
 
 **Usage:**
 ```bash
@@ -62,8 +63,29 @@ python train_gpu.py
 - **Batch Size Optimization**: Tests different batch sizes to find optimal one
 - **Gradient Clipping**: Prevents gradient explosion
 - **Learning Rate Scheduling**: Cosine annealing with warm restarts
+- **Maximum Memory Fraction**: Uses 95% of available GPU memory
 
-### 2. Generation with GPU (`generate_gpu.py`)
+### 2. Maximum Memory Training (`maximize_cuda_memory.py`)
+
+**Features:**
+- **Maximum GPU memory utilization (95-98%)**
+- Aggressive batch size testing (up to 1024)
+- Real-time memory monitoring and optimization
+- Automatic memory fraction adjustment
+- Peak memory usage tracking
+
+**Usage:**
+```bash
+python maximize_cuda_memory.py
+```
+
+**Maximum Memory Features:**
+- **Memory Fraction**: Automatically sets to 95% of total GPU memory
+- **Batch Size Testing**: Tests sizes from 32 to 1024
+- **Memory Monitoring**: Real-time tracking of allocated/reserved memory
+- **Automatic Fallback**: Reduces memory fraction if OOM occurs
+
+### 3. Generation with GPU (`generate_gpu.py`)
 
 **Features:**
 - GPU-accelerated track generation
@@ -87,11 +109,17 @@ python generate_gpu.py
 - **GPU vs CPU**: 10-50x faster training depending on GPU
 - **Memory Efficiency**: Optimized batch sizes for your GPU
 - **Real-time Monitoring**: Track GPU memory and performance
+- **Maximum Memory**: Uses 95% of available GPU memory for maximum throughput
 
 ### Generation Speedup
 - **Batch Generation**: Generate multiple tracks simultaneously
 - **Memory Optimization**: Efficient tensor operations
 - **Temperature Control**: Adjust generation creativity
+
+### Memory Utilization
+- **Standard Training**: Uses 60-80% of GPU memory
+- **Maximum Memory Training**: Uses 95-98% of GPU memory
+- **Batch Size**: Automatically optimized for your specific GPU
 
 ## 🔍 Monitoring GPU Usage
 
@@ -109,6 +137,11 @@ nvidia-smi
 
 # Monitor in real-time
 watch -n 1 nvidia-smi
+
+# Use the built-in memory monitor
+python monitor_gpu_memory.py monitor 5 60  # Monitor for 60 seconds
+python monitor_gpu_memory.py status        # Show current status
+python monitor_gpu_memory.py test          # Test memory allocation
 ```
 
 ## ⚙️ Configuration
@@ -200,14 +233,16 @@ if torch.cuda.is_available():
 
 ```
 neutron-vae/
-├── train_gpu.py          # GPU-optimized training
-├── generate_gpu.py       # GPU-optimized generation
-├── setup_cuda.py         # CUDA setup and testing
+├── train_gpu.py              # GPU-optimized training
+├── maximize_cuda_memory.py   # Maximum memory training
+├── generate_gpu.py           # GPU-optimized generation
+├── monitor_gpu_memory.py     # Memory monitoring tool
+├── setup_cuda.py             # CUDA setup and testing
 ├── neutron_vae/
-│   ├── config.py         # GPU-aware configuration
-│   ├── model.py          # GPU-compatible model
-│   └── train.py          # Original training script
-└── GPU_README.md         # This file
+│   ├── config.py             # GPU-aware configuration
+│   ├── model.py              # GPU-compatible model
+│   └── train.py              # Original training script
+└── GPU_README.md             # This file
 ```
 
 ## 🚀 Quick Start
@@ -217,17 +252,27 @@ neutron-vae/
    python setup_cuda.py
    ```
 
-2. **Train with GPU:**
+2. **Monitor GPU memory:**
+   ```bash
+   python monitor_gpu_memory.py status
+   ```
+
+3. **Train with maximum memory:**
+   ```bash
+   python maximize_cuda_memory.py
+   ```
+
+4. **Or train with standard GPU optimization:**
    ```bash
    python train_gpu.py
    ```
 
-3. **Generate with GPU:**
+5. **Generate with GPU:**
    ```bash
    python generate_gpu.py
    ```
 
-4. **Check accuracy:**
+6. **Check accuracy:**
    ```bash
    python robust_accuracy_check.py
    ```
