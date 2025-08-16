@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Robust accuracy check for neutron track data
-Handles single real track vs multiple generated tracks
+Final Accuracy Check for Quick Training Generated Data
 """
 
 import numpy as np
@@ -63,18 +62,14 @@ def load_real_data():
         print(f"❌ Error loading real data: {e}")
         return None
 
-def load_generated_data():
-    """Load the most accurate generated data"""
-    if os.path.exists('accurate_neutron_tracks.npy'):
-        tracks = np.load('accurate_neutron_tracks.npy')
-        print(f"✅ Loaded accurate generated data: {tracks.shape}")
-        return tracks, "accurate"
-    elif os.path.exists('generated_neutron_tracks.npy'):
-        tracks = np.load('generated_neutron_tracks.npy')
-        print(f"✅ Loaded generated data: {tracks.shape}")
-        return tracks, "original"
+def load_quick_generated_data():
+    """Load the quick training generated data"""
+    if os.path.exists('quick_generated_neutron_tracks.npy'):
+        tracks = np.load('quick_generated_neutron_tracks.npy')
+        print(f"✅ Loaded quick generated data: {tracks.shape}")
+        return tracks, "quick"
     else:
-        print("❌ No generated data found!")
+        print("❌ No quick generated data found!")
         return None, None
 
 def normalize_to_unit_cube(tracks):
@@ -290,7 +285,7 @@ def calculate_distribution_similarity(real_tracks, gen_tracks):
     return distribution_score
 
 def main():
-    print("🧪 ROBUST ACCURACY CHECK")
+    print("🧪 FINAL ACCURACY CHECK - QUICK TRAINING")
     print("=" * 60)
     
     # Load data
@@ -299,7 +294,7 @@ def main():
         print("❌ Cannot proceed without real data!")
         return
     
-    gen_tracks, data_type = load_generated_data()
+    gen_tracks, data_type = load_quick_generated_data()
     if gen_tracks is None:
         print("❌ Cannot proceed without generated data!")
         return
@@ -347,10 +342,10 @@ def main():
     
     print(f"🎯 Quality Assessment: {quality}")
     
-    print(f"\n🎉 Robust accuracy check complete!")
+    print(f"\n🎉 Final accuracy check complete!")
     print(f"📁 Generated data files:")
-    print(f"   - accurate_neutron_tracks.npy (improved data)")
-    print(f"   - accurate_neutron_tracks.csv (improved CSV)")
+    print(f"   - quick_generated_neutron_tracks.npy")
+    print(f"   - quick_generated_neutron_tracks.csv")
 
 if __name__ == "__main__":
     main()
