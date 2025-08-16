@@ -215,8 +215,8 @@ class HighFidelityVAE(UltraHighFidelityVAE):
 class VAE(UltraHighFidelityVAE):
     pass
 
-def vae_loss(recon, x, mu, logvar, beta=0.001, alpha=0.01, gamma=0.05, delta=0.01):
-    """Ultra-high-fidelity VAE loss with multiple components"""
+def vae_loss(recon, x, mu, logvar, beta=0.001, alpha=0.01, gamma=0.05, delta=0.01, spatial_weight=0.05):
+    """Ultra-high-fidelity VAE loss with spatial constraints"""
     # Reconstruction loss (MSE)
     mse_loss = F.mse_loss(recon, x, reduction='mean')
     
@@ -233,8 +233,13 @@ def vae_loss(recon, x, mu, logvar, beta=0.001, alpha=0.01, gamma=0.05, delta=0.0
     cos_loss = 1 - F.cosine_similarity(recon.view(recon.size(0), -1), 
                                       x.view(x.size(0), -1), dim=1).mean()
     
+    # Spatial constraint losses
+    spatial_losses = calculate_spatial_constraints(recon)
+    
     # Combined loss
-    total_loss = mse_loss + alpha * smooth_l1_loss + beta * kld_loss + gamma * perceptual_loss + delta * cos_loss
+    total_loss = (mse_loss + alpha * smooth_l1_loss + beta * kld_loss + 
+                  gamma * perceptual_loss + delta * cos_loss + 
+                  spatial_weight * spatial_losses['total'])
     
     return total_loss, {
         'mse': mse_loss.item(),
@@ -242,5 +247,75 @@ def vae_loss(recon, x, mu, logvar, beta=0.001, alpha=0.01, gamma=0.05, delta=0.0
         'kld': kld_loss.item(),
         'perceptual': perceptual_loss.item(),
         'cosine': cos_loss.item(),
+        'volume': spatial_losses['volume'].item(),
+        'smoothness': spatial_losses['smoothness'].item(),
+        'length': spatial_losses['length'].item(),
+        'spatial_total': spatial_losses['total'].item(),
         'total': total_loss.item()
+    }
+
+def calculate_spatial_constraints(recon):
+    """Calculate spatial constraint losses for realistic track generation."""
+    batch_size, seq_len, dims = recon.shape
+    
+    # Volume constraint: ensure tracks stay within realistic bounds
+    # Convert from [-1,1] back to real coordinates for constraint checking
+    from neutron_vae.config import BOUNDS
+    xyz_min = torch.tensor(BOUNDS['min'], device=recon.device, dtype=recon.dtype)
+    xyz_max = torch.tensor(BOUNDS['max'], device=recon.device, dtype=recon.dtype)
+    
+    # Convert normalized coordinates back to real space
+    recon_real = (recon + 1) / 2 * (xyz_max - xyz_min) + xyz_min
+    
+    # Volume constraint loss: penalize points outside bounds
+    volume_loss = torch.mean(F.relu(recon_real - xyz_max) + F.relu(xyz_min - recon_real))
+    
+    # Track smoothness constraint
+    if seq_len > 1:
+        # Calculate second derivatives for smoothness
+        second_deriv = recon[:, 2:] - 2 * recon[:, 1:-1] + recon[:, :-2]
+        smoothness_loss = torch.mean(torch.norm(second_deriv, dim=-1))
+    else:
+        smoothness_loss = torch.tensor(0.0, device=recon.device)
+    
+    # Track length constraint
+    if seq_len > 1:
+        # Calculate track lengths
+        diffs = recon[:, 1:] - recon[:, :-1]
+        track_lengths = torch.sum(torch.norm(diffs, dim=-1), dim=1)
+        
+        # Penalize tracks that are too short or too long
+        from neutron_vae.config import SPATIAL_CONSTRAINTS
+        min_length = SPATIAL_CONSTRAINTS['min_track_length']
+        max_length = SPATIAL_CONSTRAINTS['max_track_length']
+        
+        # Normalize lengths to real space
+        length_scale = torch.norm(xyz_max - xyz_min)
+        track_lengths_real = track_lengths * length_scale / 2  # Convert from normalized to real
+        
+        length_loss = torch.mean(
+            F.relu(min_length - track_lengths_real) + 
+            F.relu(track_lengths_real - max_length)
+        )
+    else:
+        length_loss = torch.tensor(0.0, device=recon.device)
+    
+    # Physical constraint: ensure tracks don't have impossible jumps
+    if seq_len > 1:
+        # Calculate step sizes
+        step_sizes = torch.norm(recon[:, 1:] - recon[:, :-1], dim=-1)
+        # Penalize steps that are too large (unrealistic jumps)
+        max_step = 0.5  # Maximum normalized step size
+        step_loss = torch.mean(F.relu(step_sizes - max_step))
+    else:
+        step_loss = torch.tensor(0.0, device=recon.device)
+    
+    total_spatial_loss = volume_loss + smoothness_loss + length_loss + step_loss
+    
+    return {
+        'volume': volume_loss,
+        'smoothness': smoothness_loss,
+        'length': length_loss,
+        'step': step_loss,
+        'total': total_spatial_loss
     }

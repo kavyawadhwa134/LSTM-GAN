@@ -7,10 +7,19 @@ CSV_FILE = os.path.join(os.path.dirname(__file__), 'Sheet.csv')
 SEQ_LEN = 200
 N_TRACKS = 10
 
-# Normalization bounds (from your reactor)
+# Real data bounds (from analysis of Sheet.csv)
 BOUNDS = {
-    'min': [-0.63, -0.63, -26.499],
-    'max': [0.63, 0.63, 21.468]
+    'min': [-0.63, -0.63, -10.204],  # Real X, Y, Z minimums
+    'max': [0.63, 0.63, 9.862]       # Real X, Y, Z maximums
+}
+
+# Spatial constraints for realistic generation
+SPATIAL_CONSTRAINTS = {
+    'volume_bounds': BOUNDS,  # Enforce volume constraints
+    'max_track_length': 20.0,  # Maximum track length in real units
+    'min_track_length': 1.0,   # Minimum track length in real units
+    'smoothness_weight': 0.1,  # Weight for track smoothness
+    'volume_weight': 0.05      # Weight for volume constraint loss
 }
 
 # Model - Match the trained model
